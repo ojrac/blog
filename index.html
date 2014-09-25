@@ -22,6 +22,67 @@
 <section id="content" class="content">
 
         <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html" rel="bookmark" title="Permalink to Go HTML Templates: Not Jinja2">Go HTML Templates: Not Jinja2</a></h2> </header>
+                <div class="entry-content"> <p>My first impression of Go's template system was pretty rough &mdash; and to understand why, let's talk about <a href="http://jinja.pocoo.org/docs/dev/">Jinja2</a>. To make a page in Python, I inherit most of the structure from a base template:</p>
+<div class="highlight"><pre><span class="c">{# base.html #}</span>
+<span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;&lt;title&gt;</span><span class="cp">{%</span> <span class="k">block</span> <span class="nv">title</span> <span class="cp">%}</span>OVERRIDE THIS<span class="cp">{%</span> <span class="k">endblock</span> <span class="cp">%}</span><span class="nt">&lt;/title&gt;&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+
+<span class="cp">{%</span> <span class="k">block</span> <span class="nv">content</span> <span class="cp">%}{%</span> <span class="k">endblock</span> <span class="cp">%}</span>
+<span class="nt">&lt;/body&gt;&lt;/html&gt;</span>
+</pre></div>
+
+
+<p>If I wanted to write an <code>index.html</code>, I'd start from <code>base.html</code> and override the sections marked with <code>{% block %}</code> and <code>{% endblock %}</code> tags:</p>
+<div class="highlight"><pre><span class="c">{# index.html #}</span><span class="x"></span>
+<span class="cp">{%</span> <span class="k">extends</span> <span class="s2">&quot;base.html&quot;</span> <span class="cp">%}</span><span class="x"></span>
+
+<span class="cp">{%</span> <span class="k">block</span> <span class="nv">title</span> <span class="cp">%}</span><span class="x">Index</span><span class="cp">{%</span> <span class="k">endblock</span> <span class="cp">%}</span><span class="x"></span>
+
+<span class="cp">{%</span> <span class="k">block</span> <span class="nv">content</span> <span class="cp">%}</span><span class="x"></span>
+<span class="x">This is the index page!</span>
+<span class="cp">{%</span> <span class="k">endblock</span> <span class="cp">%}</span><span class="x"></span>
+</pre></div>
+
+
+<p>When you render a template that extends another, it takes the base content and fills in any blocks overridden in the children. So, rendering <code>index.html</code> would look like:</p>
+<div class="highlight"><pre><span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;&lt;title&gt;</span>Index<span class="nt">&lt;/title&gt;&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+
+This is the index page!
+<span class="nt">&lt;/body&gt;&lt;/html&gt;</span>
+</pre></div>
+
+
+<p>Go's template system is not like that.</p>
+<p>It took me back to my time with PHP &mdash; which is the last thing I ever expected to say about Go. To render a page with common scaffolding in <a href="http://golang.org/pkg/html/template/">html/template</a>, you break <code>base.html</code> up into a header and footer, and include them at the top and bottom:</p>
+<p><code>header.html</code>:</p>
+<div class="highlight"><pre><span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;&lt;title&gt;</span>{{ . }}<span class="nt">&lt;/title&gt;&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+</pre></div>
+
+
+<p><code>footer.html</code>:</p>
+<div class="highlight"><pre><span class="nt">&lt;/body&gt;&lt;/html&gt;</span>
+</pre></div>
+
+
+<p><code>index.html</code>:</p>
+<div class="highlight"><pre>{{ template &quot;header.html&quot; &quot;Index&quot; }}
+
+This is the index page!
+
+{{ template &quot;footer.html&quot; }}
+</pre></div>
+
+
+<p>This felt like a step back: Jinja2's blocks took time to learn, but they let you build HTML content in a way that made total sense &mdash; write elements, and slot them into place. Go's template system is less abstract &mdash; to add a common header, you put a <code>{{ template "header.html" }}</code> exactly where you want it to show up.</p>
+<p>While I miss Jinja2's abstractions, I've also started to appreciate the directness of Go's templates. In the next post, I'll talk a bit about how Go applies templates to values &mdash; it's also very different from Jinja2, and (like many things in the Go standard library) as you get into the details, Go's choices start making more sense.</p> </div><!-- entry-content -->
+        </article>
+        <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/writing-go-web-services.html" rel="bookmark" title="Permalink to Writing Go Web Services">Writing Go Web Services</a></h2> </header>
                 <div class="entry-content"> <p>Google Go (“golang” to your search engine) is a promising language for web services, and I expect to use it professionally within the next five years. But, unlike other languages and frameworks with a longer history, there aren’t many people or resources to help me get productive. So, I’m going to learn the old fashioned way: by taking an app I wrote and rewriting it in Go, and documenting the ups and downs.</p>
 <p>If you’re looking for the “right” way to do things, don’t take what I say too seriously; I’ll try to be thoughtful, but I expect to change my mind several times over the next few months. My goal here is to make a lot of beginner mistakes now, so I can be somewhat competent in the future. Perhaps the distant future.</p>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Go HTML Templates: Applying Data - Golang from Python</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="http://blog.ojrac.com/theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link href="http://blog.ojrac.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Full Atom Feed" />
+        <link href="http://blog.ojrac.com/feeds/golang.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Categories Atom Feed" />
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="http://blog.ojrac.com">Home</a></li>
+                    <li><a href="http://blog.ojrac.com/archives.html">Archives</a></li>
+                </ul>
+                <h3 class="text-muted"><a href="http://blog.ojrac.com">Golang from Python</a></h3>
+				<h2 class="text-muted"></h2>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="http://blog.ojrac.com/drafts/go-html-templates-applying-data.html" rel="bookmark"
+         title="Permalink to Go HTML Templates: Applying Data">Go HTML Templates: Applying Data</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>Variables inherit, etc.</p>
+<p>With Jinja2 templates, you think in terms of a base structure that you override in pieces. Go templates feel less easy to extend from inside the templates, but you can do a lot from the code. You should probably read the <a href="http://golang.org/pkg/text/template/">text/template docs</a> if you haven't already -- but, the gist is: you apply a template to a data structure, which is referred to by the <code>.</code> character. <code>header.html</code> expects to be applied to a string, which is used as the page title. In <code>index.html</code>, we pass the title as an argument into the <code>{{ template }}</code>.</p>
+<p>This is one way in which Go's built-in API influences my design choices; with Jinja, I could get away with template files declaring their JavaScript includes in <code>{% block %}</code> overrides. In Go, I'm more likely to create a HeaderContext and FooterContext struct, and declaring the list of script files in my .go code.</p>
+<p>A lot of Go's standard library feels like it's focused on the simplest thing that will do the job. So, while I miss the flexibility of Jinja2, Go templates can do everything I need -- I'm just not used to it. A pattern that's beginning to emerge from the Go standard library: functional, production-friendly, but inconvenient.</p>
+<p>I've talked a lot about the syntax of templates here -- the next post will spend more time on how I actually use the http/template package in my code.</p>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2014-09-26T22:00:00">
+      Fri 26 September 2014
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="http://blog.ojrac.com/author/owen-raccuglia.html">Owen Raccuglia</a>
+    </address> in <a href="http://blog.ojrac.com/category/golang.html">golang</a> Tagged <a href="http://blog.ojrac.com/tag/templates.html">templates </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="http://blog.ojrac.com/feeds/all.atom.xml">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="http://blog.ojrac.com">Golang from Python</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+	var pageTracker = _gat._getTracker("UA-55122450-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+    </body>
+</html>
