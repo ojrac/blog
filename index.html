@@ -22,6 +22,46 @@
 <section id="content" class="content">
 
         <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-applying-data.html" rel="bookmark" title="Permalink to Go HTML Templates: Applying Data">Go HTML Templates: Applying Data</a></h2> </header>
+                <div class="entry-content"> <p>The <a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html">last post</a> on structuring Go templates left out the main feature of templating: varying output. Let's look at my <code>header.html</code> again:</p>
+<div class="highlight"><pre><span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;head&gt;&lt;title&gt;</span>{{ . }}<span class="nt">&lt;/title&gt;&lt;/head&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+</pre></div>
+
+
+<p><code>{{ . }}</code> means "put the value of <code>.</code> here." So, if you apply that template to the string "Index", it outputs <code>&lt;title&gt;Index&lt;/title&gt;</code>. The same goes for structs; if you apply a template to a <code>struct{Title string}</code>, <code>{{ .Title }}</code> prints the title field.</p>
+<p>There's one catch with using <code>.</code>, and the solution was deep enough in the docs that I missed it completely. Here's something that might look right, but isn't:</p>
+<div class="highlight"><pre><span class="kd">type</span> <span class="nx">Folder</span> <span class="kd">struct</span> <span class="p">{</span>
+    <span class="nx">Name</span> <span class="kt">string</span>
+    <span class="nx">Files</span> <span class="p">[]</span><span class="kt">string</span>
+<span class="p">}</span>
+
+<span class="nx">f</span> <span class="o">:=</span> <span class="nx">Folder</span><span class="p">{</span><span class="s">&quot;/root&quot;</span><span class="p">,</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;.bash_history&quot;</span><span class="p">,</span> <span class="s">&quot;.bashrc&quot;</span><span class="p">}}</span>
+
+<span class="c1">// It&#39;s not okay to ignore errors... unless you&#39;re a blog post.</span>
+<span class="nx">tmpl</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;t&quot;</span><span class="p">).</span><span class="nx">Parse</span><span class="p">(</span>
+    <span class="s">`Contents of {{ .Name }}:</span>
+<span class="s">    {{ range _, $f := .Files }}</span>
+<span class="s">        {{ .Name }}/{{ $f }}</span>
+<span class="s">    {{ end }}</span>
+<span class="s">    `</span><span class="p">)</span>
+<span class="nx">tmpl</span><span class="p">.</span><span class="nx">Execute</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="p">,</span> <span class="nx">f</span><span class="p">)</span>
+</pre></div>
+
+
+<p>This doesn't work, because <code>.</code> changes in context of a range, to refer to the current list element. The fix is easy, but it's buried a few pages down in the docs: <code>$</code> always holds the original value of <code>.</code>.  Here's the correct template (or <a href="http://play.golang.org/p/C4Ex22p16M">run it on play.golang.org</a>):</p>
+<div class="highlight"><pre><span class="s">`Contents of {{ .Name }}:</span>
+<span class="s">{{ range .Files }}</span>
+<span class="s">    {{ $.Name }}/{{ . }}</span>
+<span class="s">{{ end }}`</span>
+</pre></div>
+
+
+<p>here's another context in which <code>.</code> changes &mdash; when you invoke another template. Earlier, I applied <code>index.html</code> to a Go string with <code>{{ template "header.html" "Index" }}</code>. This works the same way as applying templates to values in Go code. For a small project, passing a string works great. For a larger project, I expect to pass a larger struct into my header and footer to include CSS and JavaScript files that are needed on each page, rather than a static list in the header.</p>
+<p>In the next post, I'll look at functions and control flow. Go templates have a stricter separation between code and formatting, and it's the biggest departure from working with Jinja2.</p> </div><!-- entry-content -->
+        </article>
+        <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html" rel="bookmark" title="Permalink to Go HTML Templates: Not Jinja2">Go HTML Templates: Not Jinja2</a></h2> </header>
                 <div class="entry-content"> <p>My first impression of Go's template system was pretty rough &mdash; and to understand why, let's talk about <a href="http://jinja.pocoo.org/docs/dev/">Jinja2</a>. To make a page in Python, I inherit most of the structure from a base template:</p>
 <div class="highlight"><pre><span class="c">{# base.html #}</span>
@@ -80,7 +120,7 @@ This is the index page!
 
 
 <p>This felt like a step back: Jinja2's blocks took time to learn, but they let you build HTML content in a way that made total sense &mdash; write elements, and slot them into place. Go's template system is less abstract &mdash; to add a common header, you put a <code>{{ template "header.html" }}</code> exactly where you want it to show up.</p>
-<p>While I miss Jinja2's abstractions, I've also started to appreciate the directness of Go's templates. In the next post, I'll talk a bit about how Go applies templates to values &mdash; it's also very different from Jinja2, and (like many things in the Go standard library) as you get into the details, Go's choices start making more sense.</p> </div><!-- entry-content -->
+<p>While I miss Jinja2's abstractions, I've also started to appreciate the directness of Go's templates. In <a href="http://blog.ojrac.com/go-html-templates-applying-data.html">the next post</a>, I talk a bit about how Go applies templates to values &mdash; it's also very different from Jinja2, and (like many things in the Go standard library) as you get into the details, Go's choices start making more sense.</p> </div><!-- entry-content -->
         </article>
         <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/writing-go-web-services.html" rel="bookmark" title="Permalink to Writing Go Web Services">Writing Go Web Services</a></h2> </header>
