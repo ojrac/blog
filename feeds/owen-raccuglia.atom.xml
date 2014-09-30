@@ -1,5 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/owen-raccuglia.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2014-09-26T08:15:00-04:00</updated><entry><title>Go HTML Templates: Applying Data</title><link href="http://blog.ojrac.com/go-html-templates-applying-data.html" rel="alternate"></link><updated>2014-09-26T08:15:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-26:go-html-templates-applying-data.html</id><summary type="html">&lt;p&gt;The &lt;a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html"&gt;last post&lt;/a&gt; on structuring Go templates left out the main feature of templating: varying output. Let's look at my &lt;code&gt;header.html&lt;/code&gt; again:&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/owen-raccuglia.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2014-09-30T08:30:00-04:00</updated><entry><title>Go HTML Templates: Functions and Flow</title><link href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html" rel="alternate"></link><updated>2014-09-30T08:30:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-30:go-html-templates-functions-and-flow.html</id><summary type="html">&lt;p&gt;Here's a Jinja2 template I ported to Go:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nv"&gt;user&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="nv"&gt;users&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;input&lt;/span&gt; &lt;span class="na"&gt;type=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;checkbox&amp;quot;&lt;/span&gt;
+       &lt;span class="na"&gt;name=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;users&amp;quot;&lt;/span&gt;
+       &lt;span class="na"&gt;value=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="cp"&gt;{{&lt;/span&gt; &lt;span class="nv"&gt;user.guid&lt;/span&gt; &lt;span class="cp"&gt;}}&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;
+       &lt;span class="na"&gt;id=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;user-&lt;/span&gt;&lt;span class="cp"&gt;{{&lt;/span&gt; &lt;span class="nv"&gt;user.guid&lt;/span&gt; &lt;span class="cp"&gt;}}&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;
+       &lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nv"&gt;user.guid&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="nv"&gt;selected_users&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt; &lt;span class="err"&gt;checked&lt;/span&gt;&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;endif&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;label&lt;/span&gt; &lt;span class="na"&gt;for=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;user-&lt;/span&gt;&lt;span class="cp"&gt;{{&lt;/span&gt; &lt;span class="nv"&gt;user.guid&lt;/span&gt; &lt;span class="cp"&gt;}}&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;{{&lt;/span&gt; &lt;span class="nv"&gt;user.name&lt;/span&gt; &lt;span class="cp"&gt;}}&lt;/span&gt;&lt;span class="nt"&gt;&amp;lt;/label&amp;gt;&lt;/span&gt;
+&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;endfor&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;It renders a checkbox list of users, some of whom are pre-selected. I'm going
+to focus on the test &lt;code&gt;{% if user.guid in selected_users %}&lt;/code&gt; - with Python, I
+passed a list of guids, and was done. There's no generic Go function for "slice
+contains," so I tried some silly things - first, I tried to register a template
+function.&lt;/p&gt;
+&lt;p&gt;Actually registering the function was easy: call
+&lt;a href="http://golang.org/pkg/text/template/#Template.Funcs"&gt;Template.Funcs&lt;/a&gt; before
+parsing your templates, with a mapping of &lt;code&gt;string&lt;/code&gt;s to your new functions. I gave
+up on this approach because the most generic contains function I could write
+would only work on &lt;code&gt;[]string&lt;/code&gt; containers. Since I couldn't make something
+globally useful, I tried passing a contains function to the template itself:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kd"&gt;var&lt;/span&gt; &lt;span class="nx"&gt;ctx&lt;/span&gt; &lt;span class="kd"&gt;struct&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nx"&gt;Users&lt;/span&gt; &lt;span class="p"&gt;[]&lt;/span&gt;&lt;span class="nx"&gt;db&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;User&lt;/span&gt;
+    &lt;span class="nx"&gt;Selected&lt;/span&gt; &lt;span class="kd"&gt;func&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;string&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="kt"&gt;bool&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="nx"&gt;ctx&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Users&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;err&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="nx"&gt;listUsers&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="c1"&gt;// error handling left to the imagination&lt;/span&gt;
+&lt;span class="nx"&gt;ctx&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;Selected&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="kd"&gt;func&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;guid&lt;/span&gt; &lt;span class="kt"&gt;string&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nx"&gt;_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;u&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="k"&gt;range&lt;/span&gt; &lt;span class="nx"&gt;selectedUsers&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nx"&gt;u&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="nx"&gt;guid&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kc"&gt;true&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kc"&gt;false&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="nx"&gt;templates&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nx"&gt;ExecuteTemplate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nx"&gt;w&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;form.html&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nx"&gt;ctx&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This had more promise -- calling the function looked like this: &lt;code&gt;{{ if index
+$.Selected .Guid }}&lt;/code&gt;. It worked, but ultimately, it was less clear than a
+&lt;code&gt;map[string]bool&lt;/code&gt;, and more code. The test &lt;code&gt;{{ if index .Map $key }}&lt;/code&gt;
+treats missing keys as false, so you only need to fill in the &lt;code&gt;true&lt;/code&gt; keys.&lt;/p&gt;
+&lt;p&gt;In the Go code above, you can see that I'm rendering templates by applying them
+to anonymous structs. It's concise if you only call the template once; for
+templates I have to reuse (mostly forms), unexported structs work well.&lt;/p&gt;
+&lt;p&gt;The next post will cover my attempts to recreate the middleware/decorator
+experience from Flask, and a quick look at some 3rd-party libraries.&lt;/p&gt;</summary><category term="templates"></category></entry><entry><title>Go HTML Templates: Applying Data</title><link href="http://blog.ojrac.com/go-html-templates-applying-data.html" rel="alternate"></link><updated>2014-09-26T08:15:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-26:go-html-templates-applying-data.html</id><summary type="html">&lt;p&gt;The &lt;a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html"&gt;last post&lt;/a&gt; on structuring Go templates left out the main feature of templating: varying output. Let's look at my &lt;code&gt;header.html&lt;/code&gt; again:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="nt"&gt;&amp;lt;html&amp;gt;&lt;/span&gt;
 &lt;span class="nt"&gt;&amp;lt;head&amp;gt;&amp;lt;title&amp;gt;&lt;/span&gt;{{ . }}&lt;span class="nt"&gt;&amp;lt;/title&amp;gt;&amp;lt;/head&amp;gt;&lt;/span&gt;
 &lt;span class="nt"&gt;&amp;lt;body&amp;gt;&lt;/span&gt;
@@ -35,7 +85,7 @@
 
 
 &lt;p&gt;here's another context in which &lt;code&gt;.&lt;/code&gt; changes &amp;mdash; when you invoke another template. Earlier, I applied &lt;code&gt;index.html&lt;/code&gt; to a Go string with &lt;code&gt;{{ template "header.html" "Index" }}&lt;/code&gt;. This works the same way as applying templates to values in Go code. For a small project, passing a string works great. For a larger project, I expect to pass a larger struct into my header and footer to include CSS and JavaScript files that are needed on each page, rather than a static list in the header.&lt;/p&gt;
-&lt;p&gt;In the next post, I'll look at functions and control flow. Go templates have a stricter separation between code and formatting, and it's the biggest departure from working with Jinja2.&lt;/p&gt;</summary><category term="templates"></category></entry><entry><title>Go HTML Templates: Not Jinja2</title><link href="http://blog.ojrac.com/go-html-templates-not-jinja2.html" rel="alternate"></link><updated>2014-09-25T08:40:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-25:go-html-templates-not-jinja2.html</id><summary type="html">&lt;p&gt;My first impression of Go's template system was pretty rough &amp;mdash; and to understand why, let's talk about &lt;a href="http://jinja.pocoo.org/docs/dev/"&gt;Jinja2&lt;/a&gt;. To make a page in Python, I inherit most of the structure from a base template:&lt;/p&gt;
+&lt;p&gt;In the &lt;a href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html"&gt;next post&lt;/a&gt;, I'll look at functions and control flow. Go templates have a stricter separation between code and formatting, and it's the biggest departure from working with Jinja2.&lt;/p&gt;</summary><category term="templates"></category></entry><entry><title>Go HTML Templates: Not Jinja2</title><link href="http://blog.ojrac.com/go-html-templates-not-jinja2.html" rel="alternate"></link><updated>2014-09-25T08:40:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-25:go-html-templates-not-jinja2.html</id><summary type="html">&lt;p&gt;My first impression of Go's template system was pretty rough &amp;mdash; and to understand why, let's talk about &lt;a href="http://jinja.pocoo.org/docs/dev/"&gt;Jinja2&lt;/a&gt;. To make a page in Python, I inherit most of the structure from a base template:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="c"&gt;{# base.html #}&lt;/span&gt;
 &lt;span class="nt"&gt;&amp;lt;html&amp;gt;&lt;/span&gt;
 &lt;span class="nt"&gt;&amp;lt;head&amp;gt;&amp;lt;title&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;block&lt;/span&gt; &lt;span class="nv"&gt;title&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;OVERRIDE THIS&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;endblock&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;&lt;span class="nt"&gt;&amp;lt;/title&amp;gt;&amp;lt;/head&amp;gt;&lt;/span&gt;

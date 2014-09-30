@@ -22,6 +22,60 @@
 <section id="content" class="content">
 
         <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html" rel="bookmark" title="Permalink to Go HTML Templates: Functions and Flow">Go HTML Templates: Functions and Flow</a></h2> </header>
+                <div class="entry-content"> <p>Here's a Jinja2 template I ported to Go:</p>
+<div class="highlight"><pre><span class="cp">{%</span> <span class="k">for</span> <span class="nv">user</span> <span class="k">in</span> <span class="nv">users</span> <span class="cp">%}</span>
+<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span>
+       <span class="na">name=</span><span class="s">&quot;users&quot;</span>
+       <span class="na">value=</span><span class="s">&quot;</span><span class="cp">{{</span> <span class="nv">user.guid</span> <span class="cp">}}</span><span class="s">&quot;</span>
+       <span class="na">id=</span><span class="s">&quot;user-</span><span class="cp">{{</span> <span class="nv">user.guid</span> <span class="cp">}}</span><span class="s">&quot;</span>
+       <span class="cp">{%</span> <span class="k">if</span> <span class="nv">user.guid</span> <span class="k">in</span> <span class="nv">selected_users</span> <span class="cp">%}</span> <span class="err">checked</span><span class="cp">{%</span> <span class="k">endif</span> <span class="cp">%}</span><span class="nt">&gt;</span>
+<span class="nt">&lt;label</span> <span class="na">for=</span><span class="s">&quot;user-</span><span class="cp">{{</span> <span class="nv">user.guid</span> <span class="cp">}}</span><span class="s">&quot;</span><span class="nt">&gt;</span><span class="cp">{{</span> <span class="nv">user.name</span> <span class="cp">}}</span><span class="nt">&lt;/label&gt;</span>
+<span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+</pre></div>
+
+
+<p>It renders a checkbox list of users, some of whom are pre-selected. I'm going
+to focus on the test <code>{% if user.guid in selected_users %}</code> - with Python, I
+passed a list of guids, and was done. There's no generic Go function for "slice
+contains," so I tried some silly things - first, I tried to register a template
+function.</p>
+<p>Actually registering the function was easy: call
+<a href="http://golang.org/pkg/text/template/#Template.Funcs">Template.Funcs</a> before
+parsing your templates, with a mapping of <code>string</code>s to your new functions. I gave
+up on this approach because the most generic contains function I could write
+would only work on <code>[]string</code> containers. Since I couldn't make something
+globally useful, I tried passing a contains function to the template itself:</p>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">ctx</span> <span class="kd">struct</span><span class="p">{</span>
+    <span class="nx">Users</span> <span class="p">[]</span><span class="nx">db</span><span class="p">.</span><span class="nx">User</span>
+    <span class="nx">Selected</span> <span class="kd">func</span><span class="p">(</span><span class="kt">string</span><span class="p">)</span><span class="kt">bool</span>
+<span class="p">}</span>
+<span class="nx">ctx</span><span class="p">.</span><span class="nx">Users</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">listUsers</span><span class="p">()</span> <span class="c1">// error handling left to the imagination</span>
+<span class="nx">ctx</span><span class="p">.</span><span class="nx">Selected</span> <span class="p">=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">guid</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">u</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">selectedUsers</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="nx">u</span> <span class="o">==</span> <span class="nx">guid</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="kc">true</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="kc">false</span>
+<span class="p">}</span>
+
+<span class="nx">templates</span><span class="p">.</span><span class="nx">ExecuteTemplate</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span> <span class="s">&quot;form.html&quot;</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span>
+</pre></div>
+
+
+<p>This had more promise -- calling the function looked like this: <code>{{ if index
+$.Selected .Guid }}</code>. It worked, but ultimately, it was less clear than a
+<code>map[string]bool</code>, and more code. The test <code>{{ if index .Map $key }}</code>
+treats missing keys as false, so you only need to fill in the <code>true</code> keys.</p>
+<p>In the Go code above, you can see that I'm rendering templates by applying them
+to anonymous structs. It's concise if you only call the template once; for
+templates I have to reuse (mostly forms), unexported structs work well.</p>
+<p>The next post will cover my attempts to recreate the middleware/decorator
+experience from Flask, and a quick look at some 3rd-party libraries.</p> </div><!-- entry-content -->
+        </article>
+        <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-applying-data.html" rel="bookmark" title="Permalink to Go HTML Templates: Applying Data">Go HTML Templates: Applying Data</a></h2> </header>
                 <div class="entry-content"> <p>The <a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html">last post</a> on structuring Go templates left out the main feature of templating: varying output. Let's look at my <code>header.html</code> again:</p>
 <div class="highlight"><pre><span class="nt">&lt;html&gt;</span>
@@ -59,7 +113,7 @@
 
 
 <p>here's another context in which <code>.</code> changes &mdash; when you invoke another template. Earlier, I applied <code>index.html</code> to a Go string with <code>{{ template "header.html" "Index" }}</code>. This works the same way as applying templates to values in Go code. For a small project, passing a string works great. For a larger project, I expect to pass a larger struct into my header and footer to include CSS and JavaScript files that are needed on each page, rather than a static list in the header.</p>
-<p>In the next post, I'll look at functions and control flow. Go templates have a stricter separation between code and formatting, and it's the biggest departure from working with Jinja2.</p> </div><!-- entry-content -->
+<p>In the <a href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html">next post</a>, I'll look at functions and control flow. Go templates have a stricter separation between code and formatting, and it's the biggest departure from working with Jinja2.</p> </div><!-- entry-content -->
         </article>
         <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html" rel="bookmark" title="Permalink to Go HTML Templates: Not Jinja2">Go HTML Templates: Not Jinja2</a></h2> </header>
