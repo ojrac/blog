@@ -67,7 +67,7 @@ globally useful, I tried passing a contains function to the template itself:</p>
 </pre></div>
 
 
-<p>This had more promise -- calling the function looked like this: <code>{{ if index
+<p>This had more promise &mdash; calling the function looked like this: <code>{{ if index
 $.Selected .Guid }}</code>. It worked, but ultimately, it was less clear than a
 <code>map[string]bool</code>, and more code. The test <code>{{ if index .Map $key }}</code>
 treats missing keys as false, so you only need to fill in the <code>true</code> keys.</p>

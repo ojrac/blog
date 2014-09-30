@@ -41,7 +41,7 @@ globally useful, I tried passing a contains function to the template itself:&lt;
 &lt;/pre&gt;&lt;/div&gt;
 
 
-&lt;p&gt;This had more promise -- calling the function looked like this: &lt;code&gt;{{ if index
+&lt;p&gt;This had more promise &amp;mdash; calling the function looked like this: &lt;code&gt;{{ if index
 $.Selected .Guid }}&lt;/code&gt;. It worked, but ultimately, it was less clear than a
 &lt;code&gt;map[string]bool&lt;/code&gt;, and more code. The test &lt;code&gt;{{ if index .Map $key }}&lt;/code&gt;
 treats missing keys as false, so you only need to fill in the &lt;code&gt;true&lt;/code&gt; keys.&lt;/p&gt;
