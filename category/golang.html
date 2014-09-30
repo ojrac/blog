@@ -38,7 +38,7 @@
 
 
 <p>It renders a checkbox list of users, some of whom are pre-selected. I'm going
-to focus on the test <code>{% if user.guid in selected_users %}</code> - with Python, I
+to focus on the test <code>{% if user.guid in selected_users %}</code>. In Python, I
 passed a list of guids, and was done. There's no generic Go function for "slice
 contains," so I tried some silly things - first, I tried to register a template
 function.</p>
