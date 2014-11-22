@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title> Articles in golang test database/sql category - Golang from Python</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="http://blog.ojrac.com/theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link href="http://blog.ojrac.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Full Atom Feed" />
+        <link href="http://blog.ojrac.com/feeds/golang-test-databasesql.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Categories Atom Feed" />
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="http://blog.ojrac.com">Home</a></li>
+                    <li class="active"><a href="http://blog.ojrac.com/archives.html">Archives</a></li>
+                </ul>
+                <h3 class="text-muted"><a href="http://blog.ojrac.com">Golang from Python</a></h3>
+				<h2 class="text-muted"></h2>
+             </div>
+<section id="content" class="content">
+<h2>Articles in the golang test database/sql category</h2>
+
+        <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/testing-and-the-database.html" rel="bookmark" title="Permalink to Testing and the Database">Testing and the Database</a></h2> </header>
+                <div class="entry-content"> <p>Writing Go database code took several tries before I settled on something that
+worked well for tests and HTTP handlers. The root decision was that all
+database functions should require a <code>*sql.DB</code>. Everything else falls into place
+&mdash; concise tests, separation between the application and test databases,
+and flexible HTTP request handlers.</p>
+<p>The application <code>*sql.DB</code> is created in <code>main()</code>, and associated with each HTTP
+request context with some request middleware, which I'll talk about more in
+another post. I spent some time with a global <code>*sql.DB</code>, but it made testing
+HTTP handlers uncomfortable. Instead, some middleware associates the database
+connection with the <code>*http.Request</code>, and I retrieve it when needed:</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">someHandler</span><span class="p">(</span><span class="n">w</span> <span class="n">http</span><span class="p">.</span><span class="n">ResponseWriter</span><span class="p">,</span> <span class="n">r</span> <span class="o">*</span><span class="n">http</span><span class="p">.</span><span class="n">Request</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">user</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">db</span><span class="p">.</span><span class="n">GetUserByGuid</span><span class="p">(</span><span class="n">GetDb</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">guid</span><span class="p">)</span>
+    <span class="c1">// ...do other stuff</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Tests work in the exact opposite way, by declaring <code>var tdb *sql.DB</code> globally
+in a <code>_test.go</code> file, so it isn't compiled in to my regular builds. Instead of
+<code>GetDb(r)</code>, I pass <code>tdb</code>.</p>
+<h3>Cleaning Up After</h3>
+<p>Or, "Life Without <code>tear_down</code>." My usual test (if it exercises the database)
+runs some set-up, calls functions, and cleans up any data created in the
+process. Go cleans up resources by deferring a cleanup function; because
+cleaning up database data is such a common task, my first cleanup helper was a
+<code>tearDown</code> function for deleting test database rows.  Using that, a test for a
+function that inserts a new row into the <code>user</code> table would look something like
+this:</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">TestNewUser</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span><span class="n">testing</span><span class="p">.</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">username</span> <span class="o">:=</span> <span class="n">randStr</span><span class="p">()</span>
+    <span class="n">defer</span> <span class="n">tearDown</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="s">&quot;Username = $1&quot;</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+
+    <span class="n">user</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">CreateUser</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+    <span class="c1">// ...assertions follow</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>I make a point of deferring the tearDown before the actual insert. It lets me
+handle <code>panic</code>s that happen between inserting data and returning from a
+function &mdash; which will be useful later. Here's how I implemented
+<code>tearDown</code>:</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">tearDown</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">where</span> <span class="n">string</span><span class="p">,</span> <span class="n">params</span> <span class="p">...</span><span class="n">interface</span><span class="p">{})</span> <span class="p">{</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">tdb</span><span class="p">.</span><span class="n">Exec</span><span class="p">(</span>
+        <span class="n">fmt</span><span class="p">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">&quot;DELETE FROM </span><span class="se">\&quot;</span><span class="s">%s</span><span class="se">\&quot;</span><span class="s"> WHERE %s&quot;</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">where</span><span class="p">),</span>
+        <span class="n">params</span><span class="p">...)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">nil</span> <span class="p">{</span>
+        <span class="c1">// Usually I&#39;d return the error, but using panic means less code in</span>
+        <span class="c1">// my tests, which is more important.</span>
+        <span class="n">panic</span><span class="p">(</span><span class="n">fmt</span><span class="p">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">&quot;Problem tearing down %s data: %v&quot;</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<h3>More Rows, Fewer Lines</h3>
+<p>This works for tests that insert a row or two, but as you start using more
+supporting data in your tests, it makes sense to bundle up common object
+creation helpers in their own functions:</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">TestSomethingElse</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span><span class="n">testing</span><span class="p">.</span><span class="n">T</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">user</span><span class="p">,</span> <span class="n">cleanup</span> <span class="o">:=</span> <span class="n">newTestUser</span><span class="p">()</span>
+    <span class="n">defer</span> <span class="n">cleanup</span><span class="p">()</span>
+    <span class="c1">// ...test follows</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>You may have noticed, after all the fuss I made about queueing the cleanup
+before inserting the rows, there's no way to do that when you're returning a
+cleanup function. That means <code>newTestUser</code> has to handle cleaning up if there
+are any problems. Just remember, "fewer lines" refers to your tests, not your
+helpers:</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">newTestUser</span><span class="p">()</span> <span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">func</span><span class="p">())</span> <span class="p">{</span>
+    <span class="n">username</span> <span class="o">:=</span> <span class="n">randStr</span><span class="p">()</span>
+    <span class="n">cleanup</span> <span class="o">:=</span> <span class="n">func</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">tearDown</span><span class="p">(</span><span class="s">&quot;user&quot;</span><span class="p">,</span> <span class="s">&quot;Username = $1&quot;</span><span class="p">,</span> <span class="n">username</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">doCleanup</span> <span class="o">:=</span> <span class="nb">true</span>
+    <span class="n">defer</span> <span class="n">func</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="n">doCleanup</span> <span class="p">{</span>
+            <span class="n">cleanup</span><span class="p">()</span>
+        <span class="p">}</span>
+    <span class="p">}()</span>
+
+    <span class="n">user</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">CreateUser</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">nil</span> <span class="p">{</span>
+        <span class="n">panic</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="n">doCleanup</span> <span class="o">=</span> <span class="nb">false</span>
+    <span class="k">return</span> <span class="n">user</span><span class="p">,</span> <span class="n">cleanup</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Writing test functions like this really starts to click when your helpers start
+calling each other &mdash; if any part of the test function fails, they all
+collapse back down, leaving a clean database.</p> </div><!-- entry-content -->
+        </article>
+<div class="pager">
+      <ul>
+                        <li class="previous disabled"><a>← Previous</a></li>
+                        <li class="next disabled"><a>Next →</a></li>
+      </ul>
+    </div>
+</section><!-- content -->
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="http://blog.ojrac.com/feeds/all.atom.xml">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="http://blog.ojrac.com">Golang from Python</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+	var pageTracker = _gat._getTracker("UA-55122450-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+    </body>
+</html>

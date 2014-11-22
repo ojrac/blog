@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Decorated Views and Context - Golang from Python</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="http://blog.ojrac.com/theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link href="http://blog.ojrac.com/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Full Atom Feed" />
+        <link href="http://blog.ojrac.com/feeds/golang.atom.xml" type="application/atom+xml" rel="alternate" title="Golang from Python Categories Atom Feed" />
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="http://blog.ojrac.com">Home</a></li>
+                    <li><a href="http://blog.ojrac.com/archives.html">Archives</a></li>
+                </ul>
+                <h3 class="text-muted"><a href="http://blog.ojrac.com">Golang from Python</a></h3>
+				<h2 class="text-muted"></h2>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="http://blog.ojrac.com/drafts/decorated-views-and-context.html" rel="bookmark"
+         title="Permalink to Decorated Views and Context">Decorated Views and Context</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>Pretty soon after setting up a user registration page, I needed a way to mark
+certain URLs as "logged in users only." There's a concept from Fabric that
+ports over</p>
+<p>The first time I heard the name "middleware," my brain nearly shut down for a
+quick nap. But, despite a name that screams "crappy proprietary library from a
+dubious SAAS company," it turned out to be super useful. The idea, at a glance:
+Middleware is code that wraps your web requests. It could do something useful
+like profiling your server or gzipping response content; it could also check
+your auth cookie/headers and pre-fetch their user info from the database.</p>
+<p>One of the first things I set up while porting my Python project to Go was a
+piece of global middleware that let me get a request's logged in user in one
+place, simplifying error handling and making sure I only query for the user
+once per request.</p>
+<p>Here's a framework-free example of a middleware function:</p>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">requestUsers</span> <span class="kd">map</span><span class="p">[</span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">]</span><span class="kt">string</span>
+
+<span class="kd">func</span> <span class="nx">withUsers</span><span class="p">(</span><span class="nx">h</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span><span class="p">)</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span> <span class="p">{</span>
+    <span class="nx">handler</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">w</span> <span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span> <span class="nx">r</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// This is a terrible way to do auth, but you get the idea</span>
+        <span class="k">if</span> <span class="nx">username</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">Header</span><span class="p">[</span><span class="s">&quot;username&quot;</span><span class="p">];</span> <span class="nx">ok</span> <span class="p">{</span>
+            <span class="nx">requestUsers</span><span class="p">[</span><span class="nx">r</span><span class="p">]</span> <span class="p">=</span> <span class="nx">username</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+                <span class="c1">// clean up when the request is handled</span>
+                <span class="nb">delete</span><span class="p">(</span><span class="nx">requestUsers</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="nx">h</span><span class="p">.</span><span class="nx">ServeHTTP</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">http</span><span class="p">.</span><span class="nx">HandlerFunc</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">// Export a function to get the request user</span>
+<span class="kd">func</span> <span class="nx">GetUser</span><span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="kt">string</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">requestUsers</span><span class="p">[</span><span class="nx">r</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Now you can wrap an <code>http.ServeMux</code> in the withUsers handler, and all your
+requests will automatically check the "username" header for your username.
+(Again, seriously, don't do that. Never trust HTTP clients.) From inside the
+request, you can call <code>GetUser</code> to access the information set aside by the
+middleware.</p>
+<p>I've been using <a href="https://github.com/codegangsta/negroni">negroni</a> for
+adding HTTP middleware; it seems to follow the Go standard library pretty well,
+and it makes my life a little easier. Here's the above example in negroni:</p>
+<div class="highlight"><pre><span class="kd">var</span> <span class="nx">requestUsers</span> <span class="kd">map</span><span class="p">[</span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">]</span><span class="kt">string</span>
+
+<span class="kd">func</span> <span class="nx">withUsers</span><span class="p">(</span><span class="nx">h</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span><span class="p">)</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span> <span class="p">{</span>
+    <span class="nx">handler</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">w</span> <span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span> <span class="nx">r</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// This is a terrible way to do auth, but you get the idea</span>
+        <span class="k">if</span> <span class="nx">username</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">Header</span><span class="p">[</span><span class="s">&quot;username&quot;</span><span class="p">];</span> <span class="nx">ok</span> <span class="p">{</span>
+            <span class="nx">requestUsers</span><span class="p">[</span><span class="nx">r</span><span class="p">]</span> <span class="p">=</span> <span class="nx">username</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+                <span class="c1">// clean up when the request is handled</span>
+                <span class="nb">delete</span><span class="p">(</span><span class="nx">requestUsers</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="nx">h</span><span class="p">.</span><span class="nx">ServeHTTP</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">http</span><span class="p">.</span><span class="nx">HandlerFunc</span><span class="p">(</span><span class="nx">handler</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">// Export a function to get the request user</span>
+<span class="kd">func</span> <span class="nx">GetUser</span><span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="kt">string</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">requestUsers</span><span class="p">[</span><span class="nx">r</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2014-10-07T08:00:00">
+      Tue 07 October 2014
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="http://blog.ojrac.com/author/owen-raccuglia.html">Owen Raccuglia</a>
+    </address> in <a href="http://blog.ojrac.com/category/golang.html">golang</a> Tagged <a href="http://blog.ojrac.com/tag/filters.html">filters </a><a href="http://blog.ojrac.com/tag/middleware.html">middleware </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="http://blog.ojrac.com/feeds/all.atom.xml">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="http://blog.ojrac.com">Golang from Python</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+	var pageTracker = _gat._getTracker("UA-55122450-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+    </body>
+</html>
