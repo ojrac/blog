@@ -24,6 +24,88 @@
 <h2>Articles in the golang category</h2>
 
         <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/one-project-down.html" rel="bookmark" title="Permalink to One Project Down">One Project Down</a></h2> </header>
+                <div class="entry-content"> <p>It's time for a retrospective post: After seven months of off-and-on porting,
+I've finished my first "complete" web project in Go. I'm happy with how a few
+things worked out, but this post focuses on the other stuff. I've already
+written up my thoughts on <a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html">templates</a>,
+and I'm pretty happy with how that approach worked.</p>
+<h1>Middleware and Request Context</h1>
+<p>I used <a href="http://godoc.org/github.com/codegangsta/negroni">negroni</a>. I liked it,
+but I think I may have overused it, too. The next project will start with 
+built-in middleware: panic recovery, request/response logging and serving static
+files. Before I add any of my own, I'll write it as a http.Handler or
+http.HandlerFunc first.</p>
+<p>I tried using <a href="http://www.gorillatoolkit.org/">gorilla</a>'s <code>context</code> library for
+storing per-request info. It was fine, but I'm going to try out Google's
+<a href="https://blog.golang.org/context">net/context</a> next.</p>
+<h1>Exceptions</h1>
+<p>I missed having stack traces. Some of that pain could have been solved if I
+caught more bugs with small unit tests, but something always slips through the
+cracks.  Sometimes you just need a line number.  I'm going to try out
+<code>go-errors/errors</code> from Bugsnag &mdash; they wrote an <a href="https://bugsnag.com/blog/go-errors">introduction to
+go-errors here</a>. I'm interested to see how
+much of a hassle it will be to change my uses of <code>err == Expected</code> to
+<code>errors.Is(err, Expected)</code>.</p>
+<h1>Silly Scope Mistakes</h1>
+<p>You may have seen this already: the <code>:=</code> operator interacts with variable
+shadowing in a way that surprised me.</p>
+<div class="highlight"><pre><span class="n">func</span> <span class="nf">find</span><span class="p">(</span><span class="n">toFind</span> <span class="n">valueType</span><span class="p">,</span> <span class="n">items</span> <span class="p">[]</span><span class="n">valueType</span><span class="p">)</span> <span class="p">(</span><span class="kt">bool</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">found</span> <span class="o">:=</span> <span class="nb">false</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">item</span> <span class="o">:=</span> <span class="n">range</span> <span class="n">items</span> <span class="p">{</span>
+        <span class="n">found</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">compareDangerously</span><span class="p">(</span><span class="n">toFind</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">nil</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="nb">false</span><span class="p">,</span> <span class="n">err</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">found</span> <span class="p">{</span>
+            <span class="k">break</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">found</span><span class="p">,</span> <span class="n">nil</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>This function can <em>never</em> return <code>true</code>, because the name <code>found</code> refers to
+two different <code>bool</code>s. <code>:=</code> prefers to declare variables; any names on the
+left-hand side that were declared at a different scope will be shadowed, not
+assigned to. When I use Go on a multi-person team, I'll add a lint step to
+the tests that treats implicitly shadowed variables as an error.</p>
+<h1>Auto Reloading</h1>
+<p>I want my server to reload whenever I make a code change. After a little
+searching, I found <a href="https://code.google.com/p/rsc/source/browse/devweb/main.go">some code from
+rsc</a> that works,
+with a little effort. Here's how I changed my server to use it:</p>
+<div class="highlight"><pre><span class="n">listen</span> <span class="o">:=</span> <span class="n">fmt</span><span class="p">.</span><span class="n">Sprintf</span><span class="p">(</span><span class="s">&quot;0.0.0.0:%d&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">addr</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">flag</span><span class="p">.</span><span class="n">Arg</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s">&quot;LISTEN_STDIN&quot;</span> <span class="p">{</span>
+    <span class="n">log</span><span class="p">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">&quot;Running dev server over stdin&quot;</span><span class="p">)</span>
+    <span class="n">l</span><span class="p">,</span> <span class="n">err</span> <span class="o">:=</span> <span class="n">net</span><span class="p">.</span><span class="n">FileListener</span><span class="p">(</span><span class="n">os</span><span class="p">.</span><span class="n">Stdin</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">!=</span> <span class="n">nil</span> <span class="p">{</span>
+        <span class="n">log</span><span class="p">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+    <span class="p">}</span>   
+    <span class="n">log</span><span class="p">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">http</span><span class="p">.</span><span class="n">Serve</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">nil</span><span class="p">))</span>
+<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">log</span><span class="p">.</span><span class="n">Printf</span><span class="p">(</span><span class="s">&quot;Listening on %s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">listen</span><span class="p">)</span>
+    <span class="n">log</span><span class="p">.</span><span class="n">Fatal</span><span class="p">(</span><span class="n">http</span><span class="p">.</span><span class="n">ListenAndServe</span><span class="p">(</span><span class="n">listen</span><span class="p">,</span> <span class="n">nil</span><span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>It looks like devweb may have been built with Windows in mind -- it runs <code>go
+build -o prox.exe [1st argument]</code>, and then runs <code>prox.exe LISTEN_STDIN</code>. The
+above code handles <code>LISTEN_STDIN</code>; the last step is to make sure your PATH is
+set up right. I'm running it like this: <code>PATH=$PATH:. devweb .</code>.</p>
+<h1>What Next?</h1>
+<p>Unlike <a href="https://github.com/ojrac/asphodel-go">the first project</a>, this one is
+going to be closed source, because it's a reimplementation of an internal tool
+we use at <a href="http://www.demiurgestudios.com/">Demiurge Studios</a> to manage our
+localization database. It's a decent fit for Go &mdash; in particular, I'm
+looking forward to improving our asynchronous exports, which should be
+relatively easy to manage with a single-process server and goroutines.</p> </div><!-- entry-content -->
+        </article>
+        <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html" rel="bookmark" title="Permalink to Go HTML Templates: Functions and Flow">Go HTML Templates: Functions and Flow</a></h2> </header>
                 <div class="entry-content"> <p>Here's a Jinja2 template I ported to Go:</p>
 <div class="highlight"><pre><span class="cp">{%</span> <span class="k">for</span> <span class="nv">user</span> <span class="k">in</span> <span class="nv">users</span> <span class="cp">%}</span>

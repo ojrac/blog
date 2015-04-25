@@ -1,5 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/golang.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2014-09-30T08:30:00-04:00</updated><entry><title>Go HTML Templates: Functions and Flow</title><link href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html" rel="alternate"></link><updated>2014-09-30T08:30:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-30:go-html-templates-functions-and-flow.html</id><summary type="html">&lt;p&gt;Here's a Jinja2 template I ported to Go:&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/golang.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2015-04-25T14:00:00-04:00</updated><entry><title>One Project Down</title><link href="http://blog.ojrac.com/one-project-down.html" rel="alternate"></link><updated>2015-04-25T14:00:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2015-04-25:one-project-down.html</id><summary type="html">&lt;p&gt;It's time for a retrospective post: After seven months of off-and-on porting,
+I've finished my first "complete" web project in Go. I'm happy with how a few
+things worked out, but this post focuses on the other stuff. I've already
+written up my thoughts on &lt;a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html"&gt;templates&lt;/a&gt;,
+and I'm pretty happy with how that approach worked.&lt;/p&gt;
+&lt;h1&gt;Middleware and Request Context&lt;/h1&gt;
+&lt;p&gt;I used &lt;a href="http://godoc.org/github.com/codegangsta/negroni"&gt;negroni&lt;/a&gt;. I liked it,
+but I think I may have overused it, too. The next project will start with 
+built-in middleware: panic recovery, request/response logging and serving static
+files. Before I add any of my own, I'll write it as a http.Handler or
+http.HandlerFunc first.&lt;/p&gt;
+&lt;p&gt;I tried using &lt;a href="http://www.gorillatoolkit.org/"&gt;gorilla&lt;/a&gt;'s &lt;code&gt;context&lt;/code&gt; library for
+storing per-request info. It was fine, but I'm going to try out Google's
+&lt;a href="https://blog.golang.org/context"&gt;net/context&lt;/a&gt; next.&lt;/p&gt;
+&lt;h1&gt;Exceptions&lt;/h1&gt;
+&lt;p&gt;I missed having stack traces. Some of that pain could have been solved if I
+caught more bugs with small unit tests, but something always slips through the
+cracks.  Sometimes you just need a line number.  I'm going to try out
+&lt;code&gt;go-errors/errors&lt;/code&gt; from Bugsnag &amp;mdash; they wrote an &lt;a href="https://bugsnag.com/blog/go-errors"&gt;introduction to
+go-errors here&lt;/a&gt;. I'm interested to see how
+much of a hassle it will be to change my uses of &lt;code&gt;err == Expected&lt;/code&gt; to
+&lt;code&gt;errors.Is(err, Expected)&lt;/code&gt;.&lt;/p&gt;
+&lt;h1&gt;Silly Scope Mistakes&lt;/h1&gt;
+&lt;p&gt;You may have seen this already: the &lt;code&gt;:=&lt;/code&gt; operator interacts with variable
+shadowing in a way that surprised me.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;func&lt;/span&gt; &lt;span class="nf"&gt;find&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;toFind&lt;/span&gt; &lt;span class="n"&gt;valueType&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;items&lt;/span&gt; &lt;span class="p"&gt;[]&lt;/span&gt;&lt;span class="n"&gt;valueType&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;bool&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;error&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;found&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;item&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="n"&gt;range&lt;/span&gt; &lt;span class="n"&gt;items&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;found&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;err&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="n"&gt;compareDangerously&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;toFind&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;item&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;err&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;nil&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;false&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;err&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;found&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;break&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;found&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;nil&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This function can &lt;em&gt;never&lt;/em&gt; return &lt;code&gt;true&lt;/code&gt;, because the name &lt;code&gt;found&lt;/code&gt; refers to
+two different &lt;code&gt;bool&lt;/code&gt;s. &lt;code&gt;:=&lt;/code&gt; prefers to declare variables; any names on the
+left-hand side that were declared at a different scope will be shadowed, not
+assigned to. When I use Go on a multi-person team, I'll add a lint step to
+the tests that treats implicitly shadowed variables as an error.&lt;/p&gt;
+&lt;h1&gt;Auto Reloading&lt;/h1&gt;
+&lt;p&gt;I want my server to reload whenever I make a code change. After a little
+searching, I found &lt;a href="https://code.google.com/p/rsc/source/browse/devweb/main.go"&gt;some code from
+rsc&lt;/a&gt; that works,
+with a little effort. Here's how I changed my server to use it:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="n"&gt;listen&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="n"&gt;fmt&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Sprintf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;0.0.0.0:%d&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;addr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;flag&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Arg&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;LISTEN_STDIN&amp;quot;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Running dev server over stdin&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;err&lt;/span&gt; &lt;span class="o"&gt;:=&lt;/span&gt; &lt;span class="n"&gt;net&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FileListener&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Stdin&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;err&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;nil&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Fatal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;err&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;   
+    &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Fatal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;http&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Serve&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;nil&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Listening on %s&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;listen&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;log&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Fatal&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;http&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ListenAndServe&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;listen&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;nil&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;It looks like devweb may have been built with Windows in mind -- it runs &lt;code&gt;go
+build -o prox.exe [1st argument]&lt;/code&gt;, and then runs &lt;code&gt;prox.exe LISTEN_STDIN&lt;/code&gt;. The
+above code handles &lt;code&gt;LISTEN_STDIN&lt;/code&gt;; the last step is to make sure your PATH is
+set up right. I'm running it like this: &lt;code&gt;PATH=$PATH:. devweb .&lt;/code&gt;.&lt;/p&gt;
+&lt;h1&gt;What Next?&lt;/h1&gt;
+&lt;p&gt;Unlike &lt;a href="https://github.com/ojrac/asphodel-go"&gt;the first project&lt;/a&gt;, this one is
+going to be closed source, because it's a reimplementation of an internal tool
+we use at &lt;a href="http://www.demiurgestudios.com/"&gt;Demiurge Studios&lt;/a&gt; to manage our
+localization database. It's a decent fit for Go &amp;mdash; in particular, I'm
+looking forward to improving our asynchronous exports, which should be
+relatively easy to manage with a single-process server and goroutines.&lt;/p&gt;</summary></entry><entry><title>Go HTML Templates: Functions and Flow</title><link href="http://blog.ojrac.com/go-html-templates-functions-and-flow.html" rel="alternate"></link><updated>2014-09-30T08:30:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2014-09-30:go-html-templates-functions-and-flow.html</id><summary type="html">&lt;p&gt;Here's a Jinja2 template I ported to Go:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="cp"&gt;{%&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nv"&gt;user&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="nv"&gt;users&lt;/span&gt; &lt;span class="cp"&gt;%}&lt;/span&gt;
 &lt;span class="nt"&gt;&amp;lt;input&lt;/span&gt; &lt;span class="na"&gt;type=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;checkbox&amp;quot;&lt;/span&gt;
        &lt;span class="na"&gt;name=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;users&amp;quot;&lt;/span&gt;
