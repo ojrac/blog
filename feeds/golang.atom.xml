@@ -1,5 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/golang.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2015-04-25T14:00:00-04:00</updated><entry><title>One Project Down</title><link href="http://blog.ojrac.com/one-project-down.html" rel="alternate"></link><updated>2015-04-25T14:00:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2015-04-25:one-project-down.html</id><summary type="html">&lt;p&gt;It's time for a retrospective post: After seven months of off-and-on porting,
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Golang from Python</title><link href="http://blog.ojrac.com/" rel="alternate"></link><link href="http://blog.ojrac.com/feeds/golang.atom.xml" rel="self"></link><id>http://blog.ojrac.com/</id><updated>2015-05-13T19:00:00-04:00</updated><entry><title>OpenSimplex Noise in Go</title><link href="http://blog.ojrac.com/opensimplex-noise-in-go.html" rel="alternate"></link><updated>2015-05-13T19:00:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2015-05-13:opensimplex-noise-in-go.html</id><summary type="html">&lt;p&gt;One of my Go projects uses procedurally-generated terrain &amp;mdash; which means
+I want smooth random noise. Perlin noise is a common choice, and there are
+existing Go implementations, but Perlin noise suffers from axis-aligned
+artifacts. Ken Perlin's successor to Perlin noise (Simplex) fixes those
+problems, but adds a worse one: it's patented. Thankfully, there's an
+alternative: &lt;a href="http://uniblock.tumblr.com/post/97868843242/noise"&gt;OpenSimplex noise by Kurt
+Spencer&lt;/a&gt;. I couldn't find a
+Go version, so I've &lt;a href="https://github.com/ojrac/opensimplex-go"&gt;ported OpenSimplex noise to
+Go&lt;/a&gt;, and released it under the same
+&lt;a href="http://unlicense.org/"&gt;Unlicense&lt;/a&gt; as the OpenSimplex algorithm.  &lt;/p&gt;
+&lt;p&gt;Besides getting the code to compile and look basically right, my goal
+was to get identical output to the reference implementation &amp;mdash; ideally,
+regardless of platform. My first attempt at testing was to render and compare
+greyscale PNGs of the noise. That caught the first few glaring bugs, but it
+failed at the larger goal of correctness: I was crushing 64-bit floats into a
+tiny color channel.&lt;/p&gt;
+&lt;p&gt;I needed to preserve all 64-bits of the inputs and output. I also wanted less
+uniform test samples and a wider range of input, in case there were subtle bugs
+masked by the regular interval and all-positive numbers. For the second pass, I
+generated 2048 samples per dimension, randomly choosing coordinates in
+[-1000, 1000] from the reference implementation.&lt;/p&gt;
+&lt;p&gt;Now that my test failures were in terms of &lt;code&gt;float64&lt;/code&gt;s, I found my final
+bug: everything was off by around 0.00000000001. The problem was with my very
+first choice when porting &amp;mdash; high-precision Go constants.&lt;/p&gt;
+&lt;p&gt;The OpenSimplex Java code starts with a few lines like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;STRETCH_CONSTANT_2D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mf"&gt;0.211324865405187&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;    &lt;span class="c1"&gt;//(1/Math.sqrt(2+1)-1)/2;&lt;/span&gt;
+&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;SQUISH_CONSTANT_2D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mf"&gt;0.366025403784439&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;      &lt;span class="c1"&gt;//(Math.sqrt(2+1)-1)/2;&lt;/span&gt;
+&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;STRETCH_CONSTANT_3D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mf"&gt;1.0&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;              &lt;span class="c1"&gt;//(1/Math.sqrt(3+1)-1)/3;&lt;/span&gt;
+&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;SQUISH_CONSTANT_3D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;                &lt;span class="c1"&gt;//(Math.sqrt(3+1)-1)/3;&lt;/span&gt;
+&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;STRETCH_CONSTANT_4D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mf"&gt;0.138196601125011&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;    &lt;span class="c1"&gt;//(1/Math.sqrt(4+1)-1)/4;&lt;/span&gt;
+&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;SQUISH_CONSTANT_4D&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mf"&gt;0.309016994374947&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;      &lt;span class="c1"&gt;//(Math.sqrt(4+1)-1)/4;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;I jumped at the chance to reevaluate the functions and pile on as much
+precision as I could. Go distinguishes itself from most languages with
+high-precision compile-time math, but this port needs consistency over
+precision. Restoring the original constants did the unthinkable: I compared
+floating point numbers with &lt;code&gt;==&lt;/code&gt; and passed tests.&lt;/p&gt;
+&lt;p&gt;I have two long-term goals for this code: testing on other architectures (to
+look for floating-point math surprises), and benchmarking. It can take a lot of
+samples of noise to generate a procedural scene, so speed is important; It's
+also an opportunity to get more experience with Go's built-in benchmarking
+tools. Even without those improvements, I think this code is still useful
+enough to publish; OpenSimplex is great for anyone who wants higher quality
+than Perlin noise, but isn't willing to deal with patents.&lt;/p&gt;</summary></entry><entry><title>One Project Down</title><link href="http://blog.ojrac.com/one-project-down.html" rel="alternate"></link><updated>2015-04-25T14:00:00-04:00</updated><author><name>Owen Raccuglia</name></author><id>tag:blog.ojrac.com,2015-04-25:one-project-down.html</id><summary type="html">&lt;p&gt;It's time for a retrospective post: After seven months of off-and-on porting,
 I've finished my first "complete" web project in Go. I'm happy with how a few
 things worked out, but this post focuses on the other stuff. I've already
 written up my thoughts on &lt;a href="http://blog.ojrac.com/go-html-templates-not-jinja2.html"&gt;templates&lt;/a&gt;,
