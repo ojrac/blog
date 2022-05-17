@@ -2,27 +2,27 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Blog @ ojrac</title>
-    <link>http://blog.ojrac.com/</link>
+    <link>https://blog.ojrac.com/</link>
     <description>Recent content on Blog @ ojrac</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="http://blog.ojrac.com/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.ojrac.com/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Unreal: Creating static mesh assets from C&#43;&#43;</title>
-      <link>http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</link>
+      <link>https://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</link>
       <pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate>
       
-      <guid>http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</guid>
+      <guid>https://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</guid>
       <description>I was looking for information on creating static mesh assets in Unreal from C++, and found a blog post that covered exactly that&amp;hellip; in version 4.16. I was working on an editor plugin for Unreal 5.0.1, and there were a few changes needed before it would compile.
 Before I get into what I had to change, here&amp;rsquo;s the sample; it creates a pyramid shape from a set of vertices with positions and UVs, and lets Unreal compute the normals and tangents.</description>
     </item>
     
     <item>
       <title>OpenSimplex Noise in Go</title>
-      <link>http://blog.ojrac.com/opensimplex/</link>
+      <link>https://blog.ojrac.com/opensimplex/</link>
       <pubDate>Wed, 13 May 2015 19:00:00 -0400</pubDate>
       
-      <guid>http://blog.ojrac.com/opensimplex/</guid>
+      <guid>https://blog.ojrac.com/opensimplex/</guid>
       <description>NOTE: As of early 2022, the Simplex noise patent has expired. Still, the opensimplex-go repo&amp;rsquo;s test case .json is a convenient starting point for anyone who needs to write a new opensimplex implementation.
  One of my Go projects uses procedurally-generated terrain — which means I want smooth random noise. Perlin noise is a common choice, and there are existing Go implementations, but Perlin noise suffers from axis-aligned artifacts. Ken Perlin&amp;rsquo;s successor to Perlin noise (Simplex) fixes those problems, but adds a worse one: it&amp;rsquo;s patented.</description>
     </item>

@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>unreal on Blog @ ojrac</title>
-    <link>http://blog.ojrac.com/tags/unreal/</link>
+    <link>https://blog.ojrac.com/tags/unreal/</link>
     <description>Recent content in unreal on Blog @ ojrac</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="http://blog.ojrac.com/tags/unreal/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 16 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.ojrac.com/tags/unreal/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Unreal: Creating static mesh assets from C&#43;&#43;</title>
-      <link>http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</link>
+      <link>https://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</link>
       <pubDate>Mon, 16 May 2022 00:00:00 +0000</pubDate>
       
-      <guid>http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</guid>
+      <guid>https://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/</guid>
       <description>I was looking for information on creating static mesh assets in Unreal from C++, and found a blog post that covered exactly that&amp;hellip; in version 4.16. I was working on an editor plugin for Unreal 5.0.1, and there were a few changes needed before it would compile.
 Before I get into what I had to change, here&amp;rsquo;s the sample; it creates a pyramid shape from a set of vertices with positions and UVs, and lets Unreal compute the normals and tangents.</description>
     </item>

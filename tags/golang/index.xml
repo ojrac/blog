@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>golang on Blog @ ojrac</title>
-    <link>http://blog.ojrac.com/tags/golang/</link>
+    <link>https://blog.ojrac.com/tags/golang/</link>
     <description>Recent content in golang on Blog @ ojrac</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 13 May 2015 19:00:00 -0400</lastBuildDate><atom:link href="http://blog.ojrac.com/tags/golang/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 13 May 2015 19:00:00 -0400</lastBuildDate><atom:link href="https://blog.ojrac.com/tags/golang/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>OpenSimplex Noise in Go</title>
-      <link>http://blog.ojrac.com/opensimplex/</link>
+      <link>https://blog.ojrac.com/opensimplex/</link>
       <pubDate>Wed, 13 May 2015 19:00:00 -0400</pubDate>
       
-      <guid>http://blog.ojrac.com/opensimplex/</guid>
+      <guid>https://blog.ojrac.com/opensimplex/</guid>
       <description>NOTE: As of early 2022, the Simplex noise patent has expired. Still, the opensimplex-go repo&amp;rsquo;s test case .json is a convenient starting point for anyone who needs to write a new opensimplex implementation.
  One of my Go projects uses procedurally-generated terrain — which means I want smooth random noise. Perlin noise is a common choice, and there are existing Go implementations, but Perlin noise suffers from axis-aligned artifacts. Ken Perlin&amp;rsquo;s successor to Perlin noise (Simplex) fixes those problems, but adds a worse one: it&amp;rsquo;s patented.</description>
     </item>
