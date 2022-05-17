@@ -179,16 +179,16 @@ the same as the full object name (rather than potentially sharing a package with
 other assets).</p>
 <p>If you&rsquo;d like to avoid trampling existing asset or package names, look at
 <code>FHairStrandsCore::CreateTexture</code> for ideas, or do something like this:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl">    <span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// If the object already existed, you&#39;ll get values like:
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
+</span></span><span class="line"><span class="cl"><span class="c1">// If the object already existed, you&#39;ll get values like:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
 </span></span></span></code></pre></div><h2 id="staticmesh-changes">StaticMesh Changes</h2>
 <p>The StaticMesh API got stricter between Unreal 4.16 and 5.0. Instead of
 accessing <code>SourceModels</code>, <code>StaticMaterials</code> and <code>SectionInfoMap</code>, there are
@@ -431,16 +431,16 @@ the same as the full object name (rather than potentially sharing a package with
 other assets).</p>
 <p>If you&rsquo;d like to avoid trampling existing asset or package names, look at
 <code>FHairStrandsCore::CreateTexture</code> for ideas, or do something like this:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
 </span></span></span><span class="line"><span class="cl"><span class="c1"></span>
-</span></span><span class="line"><span class="cl">    <span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
-</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
-</span></span><span class="line"><span class="cl">    <span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">    <span class="c1">// If the object already existed, you&#39;ll get values like:
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
+</span></span><span class="line"><span class="cl"><span class="c1">// If the object already existed, you&#39;ll get values like:
+</span></span></span><span class="line"><span class="cl"><span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
 </span></span></span></code></pre></div><h2 id="staticmesh-changes">StaticMesh Changes</h2>
 <p>The StaticMesh API got stricter between Unreal 4.16 and 5.0. Instead of
 accessing <code>SourceModels</code>, <code>StaticMaterials</code> and <code>SectionInfoMap</code>, there are
