@@ -196,7 +196,7 @@ other assets).</p>
 <p>The StaticMesh API got stricter between Unreal 4.16 and 5.0. Instead of
 accessing <code>SourceModels</code>, <code>StaticMaterials</code> and <code>SectionInfoMap</code>, there are
 thread-safe accessors to use.</p>
-<p>For <code>SourcModels</code> specifically, the sample had to be reworked to call
+<p>For <code>SourceModels</code> specifically, the sample had to be reworked to call
 <code>SetNumSourceModels(1)</code> so the <code>StaticMesh</code> could handle allocations internally,
 and retrieve the resulting <code>FStaticMeshSourceModel</code> afterwards.</p>
 <h2 id="the-rest">The Rest</h2>
