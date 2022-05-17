@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>    <head>
-	<meta name="generator" content="Hugo 0.97.3" />
-        <title>Blog @ ojrac</title>
+        <title>Unreal: Creating static mesh assets from C&#43;&#43; - Blog @ ojrac</title>
         <meta charset="utf-8" />
         <link href="http://blog.ojrac.com/css/bootstrap-3.0.0.min.css" rel="stylesheet" />
         <link href="http://blog.ojrac.com/css/style.css" rel="stylesheet" />
@@ -15,11 +14,16 @@
                 </ul>
                 <h3 class="text-muted"><a href="http://blog.ojrac.com/">Blog @ ojrac</a></h3>
              </div><div id="content">
-
-
-        <article class="hentry">
-                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/" rel="bookmark" title="Permalink to Unreal: Creating static mesh assets from C&#43;&#43;">Unreal: Creating static mesh assets from C&#43;&#43;</a></h2> </header>
-                <div class="entry-content"> <p>I was looking for information on creating static mesh assets in Unreal from C++,
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/" rel="bookmark" title="Permalink to Unreal: Creating static mesh assets from C&#43;&#43;">
+          Unreal: Creating static mesh assets from C&#43;&#43;</a></h2>
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>I was looking for information on creating static mesh assets in Unreal from C++,
 and found <a href="http://www.danielmayor.com/ue4-create-staticmesh-editor-plugin">a blog
 post</a> that
 covered exactly that&hellip; in version 4.16. I was working on an editor plugin for
@@ -205,65 +209,24 @@ leave a comment whenever the sample differed from those defaults)</li>
 <code>CreatePackage(nullptr, *pathPackage)</code></li>
 <li>Fix log format string (<code>*ObjectName</code>, not <code>&amp;ObjectName</code>)</li>
 </ul>
- </div>
-        </article>
+
+  </div>
+   <footer class="post-info text-muted">
+       Posted on <time datetime="2022-05-16">May 16, 2022</time>
+
+<p>
+    Tags:
 
 
-
-        <article class="hentry">
-                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/opensimplex/" rel="bookmark" title="Permalink to OpenSimplex Noise in Go">OpenSimplex Noise in Go</a></h2> </header>
-                <div class="entry-content"> <p><strong>NOTE:</strong> As of early 2022, <a href="https://patents.google.com/patent/US6867776B2/en">the Simplex noise
-patent</a>
-has expired. Still, the opensimplex-go repo&rsquo;s test case .json is a convenient
-starting point for anyone who needs to write a new opensimplex implementation.</p>
-<hr>
-<p>One of my Go projects uses procedurally-generated terrain — which means
-I want smooth random noise. Perlin noise is a common choice, and there are
-existing Go implementations, but Perlin noise suffers from axis-aligned
-artifacts. Ken Perlin&rsquo;s successor to Perlin noise (Simplex) fixes those
-problems, but adds a worse one: it&rsquo;s patented. Thankfully, there&rsquo;s an
-alternative: <a href="http://uniblock.tumblr.com/post/97868843242/noise">OpenSimplex noise by Kurt
-Spencer</a>. I couldn&rsquo;t find a
-Go version, so I&rsquo;ve <a href="https://github.com/ojrac/opensimplex-go">ported OpenSimplex noise to
-Go</a>, and released it under the same
-<a href="http://unlicense.org/">Unlicense</a> as the OpenSimplex algorithm.</p>
-<p>Besides getting the code to compile and look basically right, my goal
-was to get identical output to the reference implementation — ideally,
-regardless of platform. My first attempt at testing was to render and compare
-greyscale PNGs of the noise. That caught the first few glaring bugs, but it
-failed at the larger goal of correctness: I was crushing 64-bit floats into a
-tiny color channel.</p>
-<p>I needed to preserve all 64-bits of the inputs and output. I also wanted less
-uniform test samples and a wider range of input, in case there were subtle bugs
-masked by the regular interval and all-positive numbers. For the second pass, I
-generated 2048 samples per dimension, randomly choosing coordinates in
-[-1000, 1000] from the reference implementation.</p>
-<p>Now that my test failures were in terms of <code>float64</code>s, I found my final
-bug: everything was off by around 0.00000000001. The problem was with my very
-first choice when porting — high-precision Go constants.</p>
-<p>The OpenSimplex Java code starts with a few lines like this:</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl">    <span class="kt">double</span> <span class="n">STRETCH_CONSTANT_2D</span> <span class="o">=</span> <span class="o">-</span><span class="n">0</span><span class="o">.</span><span class="na">211324865405187</span><span class="o">;</span>    <span class="c1">//(1/Math.sqrt(2+1)-1)/2;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">SQUISH_CONSTANT_2D</span> <span class="o">=</span> <span class="n">0</span><span class="o">.</span><span class="na">366025403784439</span><span class="o">;</span>      <span class="c1">//(Math.sqrt(2+1)-1)/2;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">STRETCH_CONSTANT_3D</span> <span class="o">=</span> <span class="o">-</span><span class="n">1</span><span class="o">.</span><span class="na">0</span> <span class="o">/</span> <span class="n">6</span><span class="o">;</span>              <span class="c1">//(1/Math.sqrt(3+1)-1)/3;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">SQUISH_CONSTANT_3D</span> <span class="o">=</span> <span class="n">1</span><span class="o">.</span><span class="na">0</span> <span class="o">/</span> <span class="n">3</span><span class="o">;</span>                <span class="c1">//(Math.sqrt(3+1)-1)/3;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">STRETCH_CONSTANT_4D</span> <span class="o">=</span> <span class="o">-</span><span class="n">0</span><span class="o">.</span><span class="na">138196601125011</span><span class="o">;</span>    <span class="c1">//(1/Math.sqrt(4+1)-1)/4;
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kt">double</span> <span class="n">SQUISH_CONSTANT_4D</span> <span class="o">=</span> <span class="n">0</span><span class="o">.</span><span class="na">309016994374947</span><span class="o">;</span>      <span class="c1">//(Math.sqrt(4+1)-1)/4;
-</span></span></span></code></pre></div><p>I jumped at the chance to reevaluate the functions and pile on as much
-precision as I could. Go distinguishes itself from most languages with
-high-precision compile-time math, but this port needs consistency across
-platforms and languages. Restoring the original constants, and comparing
-the <code>float64</code> output from the Java version with <code>==</code>, the tests passed.</p>
-<p>I have two long-term goals for this code: testing on other architectures (to
-look for floating-point math surprises), and benchmarking. It can take a lot of
-samples of noise to generate a procedural scene, so speed is important; It&rsquo;s
-also an opportunity to get more experience with Go&rsquo;s built-in benchmarking
-tools. Even without those improvements, I think this code is still useful
-enough to publish; OpenSimplex is great for anyone who wants higher quality
-than Perlin noise, but isn&rsquo;t willing to deal with patents.</p>
- </div>
-        </article>
+<a class="btn btn-default btn-xs btn-outline-dark tag-btn" href="http://blog.ojrac.com/tags/unreal">unreal</a>
 
 
+<a class="btn btn-default btn-xs btn-outline-dark tag-btn" href="http://blog.ojrac.com/tags/gamedev">gamedev</a>
+
+</p>
+
+  </footer>
+</section>
 
         </div>
             <footer id="contentinfo" class="footer">

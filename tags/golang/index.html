@@ -19,6 +19,201 @@
 
 
         <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/" rel="bookmark" title="Permalink to Unreal: Creating static mesh assets from C&#43;&#43;">Unreal: Creating static mesh assets from C&#43;&#43;</a></h2> </header>
+                <div class="entry-content"> <p>I was looking for information on creating static mesh assets in Unreal from C++,
+and found <a href="http://www.danielmayor.com/ue4-create-staticmesh-editor-plugin">a blog
+post</a> that
+covered exactly that&hellip; in version 4.16. I was working on an editor plugin for
+Unreal 5.0.1, and there were a few changes needed before it would compile.</p>
+<p>Before I get into what I had to change, here&rsquo;s the sample; it creates a pyramid
+shape from a set of vertices with positions and UVs, and lets Unreal compute the
+normals and tangents. If you have trouble building it, check your plugin&rsquo;s <code>.Build.cs</code> file, and add <code>&quot;RawMesh&quot;</code> to <code>PrivateDependencyModuleNames</code> if it&rsquo;s not there.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">CreateStaticMesh</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// With thanks to http://www.danielmayor.com/ue4-create-staticmesh-editor-plugin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Object Details
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">FString</span> <span class="n">ObjectName</span> <span class="o">=</span> <span class="n">FString</span><span class="p">(</span><span class="s">&#34;MyObject&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">FVector3f</span><span class="o">&gt;</span> <span class="n">Vertices</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">86.6</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="o">-</span><span class="mf">86.6</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">2.13</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">175</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">2.13</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfVertices</span> <span class="o">=</span> <span class="n">Vertices</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="nc">Face</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">short</span> <span class="n">materialID</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">Face</span><span class="o">&gt;</span> <span class="n">Faces</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Face</span> <span class="n">oneFace</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfFaces</span> <span class="o">=</span> <span class="n">Faces</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">FStaticMaterial</span><span class="o">&gt;</span> <span class="n">Materials</span><span class="p">;</span> <span class="c1">//This should contain the real Materials, this is just an example
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Materials</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FStaticMaterial</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Materials</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FStaticMaterial</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfMaterials</span> <span class="o">=</span> <span class="n">Materials</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Create Package
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">FString</span> <span class="n">pathPackage</span> <span class="o">=</span> <span class="n">FString</span><span class="p">(</span><span class="s">&#34;/Game/MyStaticMeshes&#34;</span><span class="p">)</span> <span class="o">/</span> <span class="n">ObjectName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UPackage</span><span class="o">*</span> <span class="n">Package</span> <span class="o">=</span> <span class="n">CreatePackage</span><span class="p">(</span><span class="o">*</span><span class="n">pathPackage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Create Static Mesh
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">UStaticMesh</span><span class="o">*</span> <span class="n">myStaticMesh</span> <span class="o">=</span> <span class="n">NewObject</span><span class="o">&lt;</span><span class="n">UStaticMesh</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Package</span><span class="p">,</span> <span class="o">*</span><span class="n">ObjectName</span><span class="p">,</span> <span class="n">RF_Public</span> <span class="o">|</span> <span class="n">RF_Standalone</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">myStaticMesh</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FRawMesh</span> <span class="n">myRawMesh</span> <span class="o">=</span> <span class="n">FRawMesh</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FColor</span> <span class="n">WhiteVertex</span> <span class="o">=</span> <span class="n">FColor</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector3f</span> <span class="n">EmptyVector</span> <span class="o">=</span> <span class="n">FVector3f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Vertices
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">vertIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">vertIndex</span> <span class="o">&lt;</span> <span class="n">numberOfVertices</span><span class="p">;</span> <span class="n">vertIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">VertexPositions</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Vertices</span><span class="p">[</span><span class="n">vertIndex</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// Faces and UV/Normals
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">faceIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">faceIndex</span> <span class="o">&lt;</span> <span class="n">numberOfFaces</span><span class="p">;</span> <span class="n">faceIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v3</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1">// Materials
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">FaceMaterialIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">materialID</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">FaceSmoothingMasks</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="mh">0xFFFFFFFF</span><span class="p">);</span> <span class="c1">// Phong
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">UVIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">UVIndex</span> <span class="o">&lt;</span> <span class="n">MAX_MESH_TEXTURE_COORDS</span><span class="p">;</span> <span class="n">UVIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords3</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Saving mesh in the StaticMesh
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">SetNumSourceModels</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FStaticMeshSourceModel</span><span class="o">&amp;</span> <span class="n">SourceModel</span> <span class="o">=</span> <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetSourceModel</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">RawMeshBulkData</span><span class="o">-&gt;</span><span class="n">SaveRawMesh</span><span class="p">(</span><span class="n">myRawMesh</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Model Configuration
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseMikkTSpace</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRecomputeNormals</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRecomputeTangents</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bComputeWeightedNormals</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRemoveDegenerates</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bBuildReversedIndexBuffer</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseHighPrecisionTangentBasis</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseFullPrecisionUVs</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseBackwardsCompatibleF16TruncUVs</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bGenerateLightmapUVs</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bGenerateDistanceFieldAsIfTwoSided</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bSupportFaceRemap</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Assign the Materials to the Slots (optional)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="n">int32</span> <span class="n">MaterialID</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">MaterialID</span> <span class="o">&lt;</span> <span class="n">numberOfMaterials</span><span class="p">;</span> <span class="n">MaterialID</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetStaticMaterials</span><span class="p">().</span><span class="n">Add</span><span class="p">(</span><span class="n">Materials</span><span class="p">[</span><span class="n">MaterialID</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetSectionInfoMap</span><span class="p">().</span><span class="n">Set</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">MaterialID</span><span class="p">,</span> <span class="n">FMeshSectionInfo</span><span class="p">(</span><span class="n">MaterialID</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Processing the StaticMesh and Marking it as not saved
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">ImportVersion</span> <span class="o">=</span> <span class="n">EImportStaticMeshVersion</span><span class="o">::</span><span class="n">LastVersion</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">CacheDerivedData</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">CreateBodySetup</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">SetLightingGuid</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">PostEditChange</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Package</span><span class="o">-&gt;</span><span class="n">MarkPackageDirty</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogTemp</span><span class="p">,</span> <span class="n">Log</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;Static Mesh created: %s in package %s&#34;</span><span class="p">),</span> <span class="o">*</span><span class="n">ObjectName</span><span class="p">,</span> <span class="o">*</span><span class="n">pathPackage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Here&rsquo;s what had to change to bring the code up to date with Unreal 5.0.</p>
+<h2 id="a-tricky-assertion-fix">A Tricky Assertion Fix</h2>
+<p>The first time the code compiled and ran, it failed with <code>Assertion failed: RawMeshBulkData-&gt;IsEmpty()</code>. After a little digging, it turns out we needed to
+call <code>ConvertRawMesh(int32 LodIndex)</code> on the <code>SourceModel</code>&hellip; which was not
+exported. But, it&rsquo;s called by <code>UStaticMesh::ConvertLegacySourceData()</code>, which is
+in turn called by <code>UStaticMesh::CacheDerivedData()</code>. So, adding a call after all
+the mesh data is set up resolved that failure.</p>
+<h2 id="asset-paths-folders-and-packaging">Asset Paths, Folders and Packaging</h2>
+<p>Assets and package paths have a lot of layers to unpack, and running the sample
+on its own seems to produce&hellip; no output! But, if you create the folder
+<code>MyStaticMeshes</code> in the root of your <code>Content</code> folder (in the Content Browser),
+and it&rsquo;ll appear. My next step after this will be to auto-create the missing
+folders, based on the implementation of <code>SContentBrowser::CreateNewFolder</code>.</p>
+<p>For the above code sample, I&rsquo;ve changed the package path to be
+the same as the full object name (rather than potentially sharing a package with
+other assets).</p>
+<p>If you&rsquo;d like to avoid trampling existing asset or package names, look at
+<code>FHairStrandsCore::CreateTexture</code> for ideas, or do something like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// If the object already existed, you&#39;ll get values like:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
+</span></span></span></code></pre></div><h2 id="staticmesh-changes">StaticMesh Changes</h2>
+<p>The StaticMesh API got stricter between Unreal 4.16 and 5.0. Instead of
+accessing <code>SourceModels</code>, <code>StaticMaterials</code> and <code>SectionInfoMap</code>, there are
+thread-safe accessors to use.</p>
+<p>For <code>SourcModels</code> specifically, the sample had to be reworked to call
+<code>SetNumSourceModels(1)</code> so the <code>StaticMesh</code> could handle allocations internally,
+and retrieve the resulting <code>FStaticMeshSourceModel</code> afterwards.</p>
+<h2 id="the-rest">The Rest</h2>
+<ul>
+<li>Reorganized the model&rsquo;s <code>BuildSettings</code> to copy the UE5 default options (and
+leave a comment whenever the sample differed from those defaults)</li>
+<li>Added explicit types to unspecified <code>TArray</code> and <code>NewObject</code></li>
+<li>Changed <code>FVector3</code> to <code>FVector3f</code>, and <code>FVector2D</code> to <code>FVector2f</code></li>
+<li>A few trivial deprecation fixes, like dropping the <code>nullptr</code> from
+<code>CreatePackage(nullptr, *pathPackage)</code></li>
+<li>Fix log format string (<code>*ObjectName</code>, not <code>&amp;ObjectName</code>)</li>
+</ul>
+ </div>
+        </article>
+
+
+
+
+
+        <article class="hentry">
                 <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/opensimplex/" rel="bookmark" title="Permalink to OpenSimplex Noise in Go">OpenSimplex Noise in Go</a></h2> </header>
                 <div class="entry-content"> <p><strong>NOTE:</strong> As of early 2022, <a href="https://patents.google.com/patent/US6867776B2/en">the Simplex noise
 patent</a>
@@ -68,6 +263,201 @@ also an opportunity to get more experience with Go&rsquo;s built-in benchmarking
 tools. Even without those improvements, I think this code is still useful
 enough to publish; OpenSimplex is great for anyone who wants higher quality
 than Perlin noise, but isn&rsquo;t willing to deal with patents.</p>
+ </div>
+        </article>
+
+
+
+
+
+        <article class="hentry">
+                <header> <h2 class="entry-title"><a href="http://blog.ojrac.com/unreal-creating-static-mesh-assets-from-cpp/" rel="bookmark" title="Permalink to Unreal: Creating static mesh assets from C&#43;&#43;">Unreal: Creating static mesh assets from C&#43;&#43;</a></h2> </header>
+                <div class="entry-content"> <p>I was looking for information on creating static mesh assets in Unreal from C++,
+and found <a href="http://www.danielmayor.com/ue4-create-staticmesh-editor-plugin">a blog
+post</a> that
+covered exactly that&hellip; in version 4.16. I was working on an editor plugin for
+Unreal 5.0.1, and there were a few changes needed before it would compile.</p>
+<p>Before I get into what I had to change, here&rsquo;s the sample; it creates a pyramid
+shape from a set of vertices with positions and UVs, and lets Unreal compute the
+normals and tangents. If you have trouble building it, check your plugin&rsquo;s <code>.Build.cs</code> file, and add <code>&quot;RawMesh&quot;</code> to <code>PrivateDependencyModuleNames</code> if it&rsquo;s not there.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl"><span class="kt">void</span> <span class="nf">CreateStaticMesh</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// With thanks to http://www.danielmayor.com/ue4-create-staticmesh-editor-plugin
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Object Details
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">FString</span> <span class="n">ObjectName</span> <span class="o">=</span> <span class="n">FString</span><span class="p">(</span><span class="s">&#34;MyObject&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">FVector3f</span><span class="o">&gt;</span> <span class="n">Vertices</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">86.6</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="o">-</span><span class="mf">86.6</span><span class="p">,</span> <span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">2.13</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">175</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Vertices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FVector3f</span><span class="p">(</span><span class="mf">2.13</span><span class="p">,</span> <span class="o">-</span><span class="mi">75</span><span class="p">,</span> <span class="mi">0</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfVertices</span> <span class="o">=</span> <span class="n">Vertices</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">struct</span> <span class="nc">Face</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">v3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">short</span> <span class="n">materialID</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords1</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords2</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector2f</span> <span class="n">uvCoords3</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">Face</span><span class="o">&gt;</span> <span class="n">Faces</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Face</span> <span class="n">oneFace</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">oneFace</span> <span class="o">=</span> <span class="p">{</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span>  <span class="n">FVector2f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">FVector2f</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Faces</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">oneFace</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfFaces</span> <span class="o">=</span> <span class="n">Faces</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="n">TArray</span><span class="o">&lt;</span><span class="n">FStaticMaterial</span><span class="o">&gt;</span> <span class="n">Materials</span><span class="p">;</span> <span class="c1">//This should contain the real Materials, this is just an example
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">Materials</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FStaticMaterial</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="n">Materials</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">FStaticMaterial</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">    <span class="kt">int</span> <span class="n">numberOfMaterials</span> <span class="o">=</span> <span class="n">Materials</span><span class="p">.</span><span class="n">Num</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Create Package
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">FString</span> <span class="n">pathPackage</span> <span class="o">=</span> <span class="n">FString</span><span class="p">(</span><span class="s">&#34;/Game/MyStaticMeshes&#34;</span><span class="p">)</span> <span class="o">/</span> <span class="n">ObjectName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">UPackage</span><span class="o">*</span> <span class="n">Package</span> <span class="o">=</span> <span class="n">CreatePackage</span><span class="p">(</span><span class="o">*</span><span class="n">pathPackage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// Create Static Mesh
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="n">UStaticMesh</span><span class="o">*</span> <span class="n">myStaticMesh</span> <span class="o">=</span> <span class="n">NewObject</span><span class="o">&lt;</span><span class="n">UStaticMesh</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Package</span><span class="p">,</span> <span class="o">*</span><span class="n">ObjectName</span><span class="p">,</span> <span class="n">RF_Public</span> <span class="o">|</span> <span class="n">RF_Standalone</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span><span class="n">myStaticMesh</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FRawMesh</span> <span class="n">myRawMesh</span> <span class="o">=</span> <span class="n">FRawMesh</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FColor</span> <span class="n">WhiteVertex</span> <span class="o">=</span> <span class="n">FColor</span><span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FVector3f</span> <span class="n">EmptyVector</span> <span class="o">=</span> <span class="n">FVector3f</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Vertices
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">vertIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">vertIndex</span> <span class="o">&lt;</span> <span class="n">numberOfVertices</span><span class="p">;</span> <span class="n">vertIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">VertexPositions</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Vertices</span><span class="p">[</span><span class="n">vertIndex</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// Faces and UV/Normals
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">faceIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">faceIndex</span> <span class="o">&lt;</span> <span class="n">numberOfFaces</span><span class="p">;</span> <span class="n">faceIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">v3</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeColors</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">WhiteVertex</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentX</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentY</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTangentZ</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">EmptyVector</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="c1">// Materials
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">FaceMaterialIndices</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">materialID</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="n">myRawMesh</span><span class="p">.</span><span class="n">FaceSmoothingMasks</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="mh">0xFFFFFFFF</span><span class="p">);</span> <span class="c1">// Phong
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">UVIndex</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">UVIndex</span> <span class="o">&lt;</span> <span class="n">MAX_MESH_TEXTURE_COORDS</span><span class="p">;</span> <span class="n">UVIndex</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">            <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords2</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="n">myRawMesh</span><span class="p">.</span><span class="n">WedgeTexCoords</span><span class="p">[</span><span class="n">UVIndex</span><span class="p">].</span><span class="n">Add</span><span class="p">(</span><span class="n">Faces</span><span class="p">[</span><span class="n">faceIndex</span><span class="p">].</span><span class="n">uvCoords3</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Saving mesh in the StaticMesh
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">SetNumSourceModels</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">FStaticMeshSourceModel</span><span class="o">&amp;</span> <span class="n">SourceModel</span> <span class="o">=</span> <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetSourceModel</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">RawMeshBulkData</span><span class="o">-&gt;</span><span class="n">SaveRawMesh</span><span class="p">(</span><span class="n">myRawMesh</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Model Configuration
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseMikkTSpace</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRecomputeNormals</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRecomputeTangents</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bComputeWeightedNormals</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bRemoveDegenerates</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bBuildReversedIndexBuffer</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span> <span class="c1">// default: true
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseHighPrecisionTangentBasis</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseFullPrecisionUVs</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bUseBackwardsCompatibleF16TruncUVs</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bGenerateLightmapUVs</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bGenerateDistanceFieldAsIfTwoSided</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">SourceModel</span><span class="p">.</span><span class="n">BuildSettings</span><span class="p">.</span><span class="n">bSupportFaceRemap</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Assign the Materials to the Slots (optional)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">        <span class="k">for</span> <span class="p">(</span><span class="n">int32</span> <span class="n">MaterialID</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">MaterialID</span> <span class="o">&lt;</span> <span class="n">numberOfMaterials</span><span class="p">;</span> <span class="n">MaterialID</span><span class="o">++</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetStaticMaterials</span><span class="p">().</span><span class="n">Add</span><span class="p">(</span><span class="n">Materials</span><span class="p">[</span><span class="n">MaterialID</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">            <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">GetSectionInfoMap</span><span class="p">().</span><span class="n">Set</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">MaterialID</span><span class="p">,</span> <span class="n">FMeshSectionInfo</span><span class="p">(</span><span class="n">MaterialID</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="c1">// Processing the StaticMesh and Marking it as not saved
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">ImportVersion</span> <span class="o">=</span> <span class="n">EImportStaticMeshVersion</span><span class="o">::</span><span class="n">LastVersion</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">CacheDerivedData</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">CreateBodySetup</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">SetLightingGuid</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">myStaticMesh</span><span class="o">-&gt;</span><span class="n">PostEditChange</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">        <span class="n">Package</span><span class="o">-&gt;</span><span class="n">MarkPackageDirty</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogTemp</span><span class="p">,</span> <span class="n">Log</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;Static Mesh created: %s in package %s&#34;</span><span class="p">),</span> <span class="o">*</span><span class="n">ObjectName</span><span class="p">,</span> <span class="o">*</span><span class="n">pathPackage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Here&rsquo;s what had to change to bring the code up to date with Unreal 5.0.</p>
+<h2 id="a-tricky-assertion-fix">A Tricky Assertion Fix</h2>
+<p>The first time the code compiled and ran, it failed with <code>Assertion failed: RawMeshBulkData-&gt;IsEmpty()</code>. After a little digging, it turns out we needed to
+call <code>ConvertRawMesh(int32 LodIndex)</code> on the <code>SourceModel</code>&hellip; which was not
+exported. But, it&rsquo;s called by <code>UStaticMesh::ConvertLegacySourceData()</code>, which is
+in turn called by <code>UStaticMesh::CacheDerivedData()</code>. So, adding a call after all
+the mesh data is set up resolved that failure.</p>
+<h2 id="asset-paths-folders-and-packaging">Asset Paths, Folders and Packaging</h2>
+<p>Assets and package paths have a lot of layers to unpack, and running the sample
+on its own seems to produce&hellip; no output! But, if you create the folder
+<code>MyStaticMeshes</code> in the root of your <code>Content</code> folder (in the Content Browser),
+and it&rsquo;ll appear. My next step after this will be to auto-create the missing
+folders, based on the implementation of <code>SContentBrowser::CreateNewFolder</code>.</p>
+<p>For the above code sample, I&rsquo;ve changed the package path to be
+the same as the full object name (rather than potentially sharing a package with
+other assets).</p>
+<p>If you&rsquo;d like to avoid trampling existing asset or package names, look at
+<code>FHairStrandsCore::CreateTexture</code> for ideas, or do something like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-cpp" data-lang="cpp"><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">FullObjectPath</span> <span class="o">=</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;/Game/MyFolder/MyAsset&#34;</span><span class="p">);</span> <span class="c1">// Potentially duplicate
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl">    <span class="n">FAssetToolsModule</span><span class="o">&amp;</span> <span class="n">AssetToolsModule</span> <span class="o">=</span> <span class="n">FModuleManager</span><span class="o">::</span><span class="n">LoadModuleChecked</span><span class="o">&lt;</span><span class="n">FAssetToolsModule</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&#34;AssetTools&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniquePackageName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">FString</span> <span class="n">UniqueAssetName</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="n">AssetToolsModule</span><span class="p">.</span><span class="n">Get</span><span class="p">().</span><span class="n">CreateUniqueAssetName</span><span class="p">(</span><span class="n">FullObjectPath</span><span class="p">,</span> <span class="n">TEXT</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span> <span class="n">UniquePackageName</span><span class="p">,</span> <span class="n">UniqueAssetName</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// If the object already existed, you&#39;ll get values like:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniquePackageName = &#34;/Game/MyFolder/MyAsset1&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// UniqueAssetName = &#34;MyAsset1&#34;
+</span></span></span></code></pre></div><h2 id="staticmesh-changes">StaticMesh Changes</h2>
+<p>The StaticMesh API got stricter between Unreal 4.16 and 5.0. Instead of
+accessing <code>SourceModels</code>, <code>StaticMaterials</code> and <code>SectionInfoMap</code>, there are
+thread-safe accessors to use.</p>
+<p>For <code>SourcModels</code> specifically, the sample had to be reworked to call
+<code>SetNumSourceModels(1)</code> so the <code>StaticMesh</code> could handle allocations internally,
+and retrieve the resulting <code>FStaticMeshSourceModel</code> afterwards.</p>
+<h2 id="the-rest">The Rest</h2>
+<ul>
+<li>Reorganized the model&rsquo;s <code>BuildSettings</code> to copy the UE5 default options (and
+leave a comment whenever the sample differed from those defaults)</li>
+<li>Added explicit types to unspecified <code>TArray</code> and <code>NewObject</code></li>
+<li>Changed <code>FVector3</code> to <code>FVector3f</code>, and <code>FVector2D</code> to <code>FVector2f</code></li>
+<li>A few trivial deprecation fixes, like dropping the <code>nullptr</code> from
+<code>CreatePackage(nullptr, *pathPackage)</code></li>
+<li>Fix log format string (<code>*ObjectName</code>, not <code>&amp;ObjectName</code>)</li>
+</ul>
  </div>
         </article>
 
